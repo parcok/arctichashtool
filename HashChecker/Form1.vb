@@ -2,6 +2,7 @@
 Imports System.IO
 Imports System.Text
 Imports System.Net
+Imports System.Text.RegularExpressions
 
 Public Class Form1
 
@@ -90,7 +91,7 @@ Public Class Form1
             counter = counter + 1
         Next
 
-        If incorrectHashes.Count > 0 Then
+        If IncorrectHashes.Count > 0 Then
             Dim box As Integer = MessageBox.Show("You have corrupt/modified WZ files, would you like to download the clean versions?", "ArcticTools - Parco's Hash Checker", MessageBoxButtons.YesNo)
             If box = DialogResult.Yes Then
                 ProgressBar1.Visible = True
@@ -106,7 +107,7 @@ Public Class Form1
 
     Private Sub DownloadFiles()
         For Each number In IncorrectHashes
-            Dim link = DownloadURL & FileNames(number)
+            Dim link = isolateMediafireLink(DownloadLinks(number))
             Dim path = TextBox1.Text & "\" & FileNames(number)
             Dim client As WebClient = New WebClient
             AddHandler client.DownloadProgressChanged, AddressOf client_ProgressChanged
@@ -130,21 +131,55 @@ Public Class Form1
     End Sub
 
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
-        Dim link = "http://arcticmseu.ddns.net/wz/Character.wz"
-        Dim client As WebClient = New WebClient
-        Dim path = "C:\Users\Kevin\Desktop\Character.wz"
-        Dim attributes As FileAttributes
-        attributes = File.GetAttributes(path)
-        If ((attributes And FileAttributes.ReadOnly) = FileAttributes.ReadOnly) Then
-            attributes = RemoveAttribute(attributes, FileAttributes.ReadOnly)
-            File.SetAttributes(path, attributes)
-            Console.WriteLine("File is no longer read only.")
-        End If
+        'Dim link = "http://arcticmseu.ddns.net/wz/Character.wz"
+        'Dim client As WebClient = New WebClient
+        'Dim path = "C:\Users\Kevin\Desktop\Character.wz"
+        'Dim attributes As FileAttributes
+        'attributes = File.GetAttributes(path)
+        'If ((attributes And FileAttributes.ReadOnly) = FileAttributes.ReadOnly) Then
+        ' attributes = RemoveAttribute(attributes, FileAttributes.ReadOnly)
+        ' File.SetAttributes(path, attributes)
+        ' Console.WriteLine("File is no longer read only.")
+        ' End If
 
-        client.DownloadFileAsync(New Uri(link), "C:\Users\Kevin\Desktop\Character.wz")
+        '        client.DownloadFileAsync(New Uri(link), "C:\Users\Kevin\Desktop\Character.wz")
+        isolateMediafireLink("http://www.mediafire.com/file/abfki7v7fe8q93e/Character.wz")
     End Sub
 
     Public Shared Function RemoveAttribute(ByVal attributes As FileAttributes, ByVal attributesToRemove As FileAttributes) As FileAttributes
         Return attributes And (Not attributesToRemove)
+    End Function
+
+    Public Shared Function isolateMediafireLink(mediafireLink As String)
+        'Dim webc As WebClient = New WebClient
+        'webc.Headers("User-Agent") = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"
+        'webc.Headers("Referer") = "http://www.mediafire.com/file/abfki7v7fe8q93e/Character.wz"
+        'webc.Headers("Accept-Language") = "en-US,en;q=0.8"
+        'webc.Headers("Accept") = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+        'webc.Headers("Cookie") = "FastPopSessionRequestNumber=3;"
+        'webc.Headers("Accept-Encoding") = "gzip, deflate, sdch"
+        'webc.Headers("Upgrade-Insecure-Requests") = "1"
+        'webc.Headers("Cache-Control") = "max-age=0"
+        'Dim webSource As String = webc.DownloadString(mediafireLink)
+        'Console.WriteLine(webSource)
+        Form1.WebBrowser1.Navigate(mediafireLink)
+        While Form1.WebBrowser1.ReadyState <> WebBrowserReadyState.Complete
+            Application.DoEvents()
+        End While
+        MessageBox.Show("Loaded")
+
+        Dim webSource As String = Form1.WebBrowser1.DocumentText
+        Dim regex = New Regex("http:\/\/download\d{4}\.mediafire.com.+?'")
+        Dim match As Match = regex.Match(webSource)
+        Dim directDownload As String
+        If match.Success Then
+            directDownload = match.Groups(1).Value
+            Console.WriteLine("Link: " & directDownload)
+            MsgBox(directDownload)
+        Else
+            Console.WriteLine("No value found.")
+            MsgBox("No value found.")
+        End If
+        Return "Hello"
     End Function
 End Class
